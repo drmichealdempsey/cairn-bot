@@ -279,17 +279,20 @@ async def got_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
         email_status = "✅ Application received"
 
     await update.message.reply_text(
-        "🎉 *You're all set!*\n\n"
-        f"{email_status}\n\n"
+        "🎉 *Application Received — Thank You!*\n\n"
+        f"Hi {lead.get('name')}, your application has been submitted successfully.\n\n"
         "📋 *Your application summary:*\n"
         f"👤 Name: {lead.get('name')}\n"
         f"📍 State: {lead.get('state')}\n"
         f"💰 Amount: ${lead.get('amount')}\n"
         f"📊 Credit: {lead.get('credit', '').title()}\n"
         f"💼 Income: {lead.get('income', '').title()}\n\n"
-        "⏱ A Cairn Credit team member will review your application and "
-        "contact you within *24–48 hours*.\n\n"
-        "Thank you for choosing Cairn Credit. We're rooting for you! 💪",
+        "━━━━━━━━━━━━━━━━━━━━\n"
+        "📞 *What happens next?*\n\n"
+        "A real Cairn Credit team member will personally review your application "
+        "and contact you by *phone or email within 24 hours* — often sooner.\n\n"
+        "You don't need to do anything else. We'll reach out to you directly.\n\n"
+        "We're rooting for you! 💪",
         parse_mode="Markdown",
         reply_markup=InlineKeyboardMarkup([
             [InlineKeyboardButton("🌐 Visit Our Website", url="https://cairn-credit.vercel.app")],

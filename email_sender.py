@@ -1,15 +1,21 @@
 import smtplib
 import os
+import logging
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-GMAIL_ADDRESS = os.environ.get("GMAIL_ADDRESS")      # e.g. cairncredit@gmail.com
-GMAIL_APP_PASSWORD = os.environ.get("GMAIL_APP_PASSWORD")  # 16-char App Password
-LEAD_RECIPIENT = os.environ.get("LEAD_RECIPIENT")    # where leads go, e.g. team@cairncredit.com
+logger = logging.getLogger(__name__)
+
+GMAIL_ADDRESS = os.environ.get("GMAIL_ADDRESS")
+GMAIL_APP_PASSWORD = os.environ.get("GMAIL_APP_PASSWORD")
+LEAD_RECIPIENT = os.environ.get("LEAD_RECIPIENT")
 
 
 def send_lead_email(lead: dict):
     """Send a formatted lead email to Cairn Credit team."""
+
+    logger.info(f"Attempting to send lead email for {lead.get('name')} to {LEAD_RECIPIENT}")
+    logger.info(f"From Gmail: {GMAIL_ADDRESS}")
 
     subject = f"🎯 New Loan Lead — {lead.get('name', 'Unknown')} ({lead.get('state', 'Unknown')})"
 
@@ -22,9 +28,7 @@ def send_lead_email(lead: dict):
         </div>
 
         <div style="background: #f9f9f9; padding: 24px; border: 1px solid #e0e0e0;">
-            <h3 style="color: #333; border-bottom: 2px solid #e0e0e0; padding-bottom: 8px;">
-                Contact Details
-            </h3>
+            <h3 style="color: #333; border-bottom: 2px solid #e0e0e0; padding-bottom: 8px;">Contact Details</h3>
             <table style="width: 100%; border-collapse: collapse;">
                 <tr>
                     <td style="padding: 8px 0; color: #666; width: 140px;"><strong>Name</strong></td>
@@ -32,21 +36,15 @@ def send_lead_email(lead: dict):
                 </tr>
                 <tr style="background: #f0f0f0;">
                     <td style="padding: 8px 4px; color: #666;"><strong>Email</strong></td>
-                    <td style="padding: 8px 4px; color: #333;">
-                        <a href="mailto:{lead.get('email', '')}">{lead.get('email', 'N/A')}</a>
-                    </td>
+                    <td style="padding: 8px 4px; color: #333;"><a href="mailto:{lead.get('email', '')}">{lead.get('email', 'N/A')}</a></td>
                 </tr>
                 <tr>
                     <td style="padding: 8px 0; color: #666;"><strong>Phone</strong></td>
-                    <td style="padding: 8px 0; color: #333;">
-                        <a href="tel:{lead.get('phone', '')}">{lead.get('phone', 'N/A')}</a>
-                    </td>
+                    <td style="padding: 8px 0; color: #333;"><a href="tel:{lead.get('phone', '')}">{lead.get('phone', 'N/A')}</a></td>
                 </tr>
             </table>
 
-            <h3 style="color: #333; border-bottom: 2px solid #e0e0e0; padding-bottom: 8px; margin-top: 24px;">
-                Application Details
-            </h3>
+            <h3 style="color: #333; border-bottom: 2px solid #e0e0e0; padding-bottom: 8px; margin-top: 24px;">Application Details</h3>
             <table style="width: 100%; border-collapse: collapse;">
                 <tr>
                     <td style="padding: 8px 0; color: #666; width: 140px;"><strong>State</strong></td>
@@ -73,8 +71,7 @@ def send_lead_email(lead: dict):
 
         <div style="background: #1a1a2e; padding: 16px 24px; border-radius: 0 0 8px 8px;">
             <p style="color: #a0a0b0; margin: 0; font-size: 13px;">
-                ⚡ This lead came via the Cairn Credit Telegram Bot. 
-                Respond within 24–48 hours as promised to the applicant.
+                ⚡ Respond within 24 hours as promised to the applicant.
             </p>
         </div>
     </body>
@@ -87,6 +84,8 @@ def send_lead_email(lead: dict):
     msg["To"] = LEAD_RECIPIENT
     msg.attach(MIMEText(html_body, "html"))
 
+    logger.info("Connecting to Gmail SMTP...")
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
         server.login(GMAIL_ADDRESS, GMAIL_APP_PASSWORD)
         server.sendmail(GMAIL_ADDRESS, LEAD_RECIPIENT, msg.as_string())
+    logger.info(f"Lead email sent successfully to {LEAD_RECIPIENT}")
