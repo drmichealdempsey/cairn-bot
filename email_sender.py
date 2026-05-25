@@ -1,23 +1,21 @@
-import smtplib
 import os
 import logging
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+import urllib.request
+import urllib.error
+import json
 
 logger = logging.getLogger(__name__)
 
-GMAIL_ADDRESS = os.environ.get("GMAIL_ADDRESS")
-GMAIL_APP_PASSWORD = os.environ.get("GMAIL_APP_PASSWORD")
+RESEND_API_KEY = os.environ.get("RESEND_API_KEY")
 LEAD_RECIPIENT = os.environ.get("LEAD_RECIPIENT")
 
 
 def send_lead_email(lead: dict):
-    """Send a formatted lead email to Cairn Credit team."""
+    """Send lead email via Resend API."""
 
-    logger.info(f"Attempting to send lead email for {lead.get('name')} to {LEAD_RECIPIENT}")
-    logger.info(f"From Gmail: {GMAIL_ADDRESS}")
+    logger.info(f"Sending lead email for {lead.get('name')} to {LEAD_RECIPIENT}")
 
-    subject = f"🎯 New Loan Lead — {lead.get('name', 'Unknown')} ({lead.get('state', 'Unknown')})"
+    subject = f"New Loan Lead — {lead.get('name', 'Unknown')} ({lead.get('state', 'Unknown')})"
 
     html_body = f"""
     <html>
@@ -26,7 +24,6 @@ def send_lead_email(lead: dict):
             <h2 style="color: #ffffff; margin: 0;">🎯 New Loan Application Lead</h2>
             <p style="color: #a0a0b0; margin: 4px 0 0;">Via Cairn Credit Telegram Bot</p>
         </div>
-
         <div style="background: #f9f9f9; padding: 24px; border: 1px solid #e0e0e0;">
             <h3 style="color: #333; border-bottom: 2px solid #e0e0e0; padding-bottom: 8px;">Contact Details</h3>
             <table style="width: 100%; border-collapse: collapse;">
@@ -36,14 +33,13 @@ def send_lead_email(lead: dict):
                 </tr>
                 <tr style="background: #f0f0f0;">
                     <td style="padding: 8px 4px; color: #666;"><strong>Email</strong></td>
-                    <td style="padding: 8px 4px; color: #333;"><a href="mailto:{lead.get('email', '')}">{lead.get('email', 'N/A')}</a></td>
+                    <td style="padding: 8px 4px;"><a href="mailto:{lead.get('email', '')}">{lead.get('email', 'N/A')}</a></td>
                 </tr>
                 <tr>
                     <td style="padding: 8px 0; color: #666;"><strong>Phone</strong></td>
-                    <td style="padding: 8px 0; color: #333;"><a href="tel:{lead.get('phone', '')}">{lead.get('phone', 'N/A')}</a></td>
+                    <td style="padding: 8px 0;"><a href="tel:{lead.get('phone', '')}">{lead.get('phone', 'N/A')}</a></td>
                 </tr>
             </table>
-
             <h3 style="color: #333; border-bottom: 2px solid #e0e0e0; padding-bottom: 8px; margin-top: 24px;">Application Details</h3>
             <table style="width: 100%; border-collapse: collapse;">
                 <tr>
@@ -68,7 +64,6 @@ def send_lead_email(lead: dict):
                 </tr>
             </table>
         </div>
-
         <div style="background: #1a1a2e; padding: 16px 24px; border-radius: 0 0 8px 8px;">
             <p style="color: #a0a0b0; margin: 0; font-size: 13px;">
                 ⚡ Respond within 24 hours as promised to the applicant.
@@ -78,14 +73,24 @@ def send_lead_email(lead: dict):
     </html>
     """
 
-    msg = MIMEMultipart("alternative")
-    msg["Subject"] = subject
-    msg["From"] = GMAIL_ADDRESS
-    msg["To"] = LEAD_RECIPIENT
-    msg.attach(MIMEText(html_body, "html"))
+    payload = json.dumps({
+        "from": "Cairn Credit Bot <onboarding@resend.dev>",
+        "to": [LEAD_RECIPIENT],
+        "subject": subject,
+        "html": html_body,
+    }).encode("utf-8")
 
-    logger.info("Connecting to Gmail SMTP...")
-    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
-        server.login(GMAIL_ADDRESS, GMAIL_APP_PASSWORD)
-        server.sendmail(GMAIL_ADDRESS, LEAD_RECIPIENT, msg.as_string())
-    logger.info(f"Lead email sent successfully to {LEAD_RECIPIENT}")
+    req = urllib.request.Request(
+        "https://api.resend.com/emails",
+        data=payload,
+        headers={
+            "Authorization": f"Bearer {RESEND_API_KEY}",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+
+    with urllib.request.urlopen(req) as response:
+        result = json.loads(response.read())
+        logger.info(f"Email sent successfully: {result}")
+        return result
