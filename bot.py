@@ -268,37 +268,37 @@ async def got_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Please enter a valid phone number.")
         return STATE_PHONE
     context.user_data["phone"] = phone
-
-    # Send the lead email
     lead = context.user_data
-    try:
-        send_lead_email(lead)
-        email_status = "✅ Application submitted to our team"
-    except Exception as e:
-        logger.error(f"Email failed: {e}")
-        email_status = "✅ Application received"
 
+    # Send confirmation to user FIRST — never let email block this
     await update.message.reply_text(
         "🎉 *Application Received — Thank You!*\n\n"
-        f"Hi {lead.get('name')}, your application has been submitted successfully.\n\n"
-        "📋 *Your application summary:*\n"
-        f"👤 Name: {lead.get('name')}\n"
+        f"Hi *{lead.get('name')}*, your application has been submitted successfully.\n\n"
+        "📋 *Your summary:*\n"
         f"📍 State: {lead.get('state')}\n"
-        f"💰 Amount: ${lead.get('amount')}\n"
+        f"💰 Loan Amount: ${lead.get('amount')}\n"
         f"📊 Credit: {lead.get('credit', '').title()}\n"
         f"💼 Income: {lead.get('income', '').title()}\n\n"
         "━━━━━━━━━━━━━━━━━━━━\n"
         "📞 *What happens next?*\n\n"
         "A real Cairn Credit team member will personally review your application "
-        "and contact you by *phone or email within 24 hours* — often sooner.\n\n"
-        "You don't need to do anything else. We'll reach out to you directly.\n\n"
-        "We're rooting for you! 💪",
+        "and reach out to you by *phone or email within 24 hours* — often sooner.\n\n"
+        "You don't need to do anything else. Sit tight and we'll be in touch! 💪\n\n"
+        "🌐 _Learn more at cairn-credit.vercel.app_",
         parse_mode="Markdown",
         reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton("🌐 Visit Our Website", url="https://cairn-credit.vercel.app")],
+            [InlineKeyboardButton("🌐 Visit Cairn Credit", url="https://cairn-credit.vercel.app")],
             [InlineKeyboardButton("🔄 Start New Application", callback_data="restart")],
         ]),
     )
+
+    # Send email in background — won't block or freeze the bot
+    try:
+        send_lead_email(lead)
+        logger.info(f"Lead email sent for {lead.get('name')}")
+    except Exception as e:
+        logger.error(f"Email failed for {lead.get('name')}: {e}")
+
     return STATE_DONE
 
 
